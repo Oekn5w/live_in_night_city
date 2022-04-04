@@ -49,21 +49,34 @@ function Player:reset()
     self.needs.fatigue:reset()
 end
 
+local function inCircle(pos, x, y, r_tol)
+    local dx = pos.x - x
+    local dy = pos.y - y
+    local r_sq = dx^2 + dy^2
+    return (r_sq <= r_tol^2)
+end
+
 function Player:getScenePos()
     local player = Game.GetPlayer()
     local playerPos = player:GetWorldPosition()
 
-    for location, restPos in pairs(POSITIONS) do
-        if (playerPos.x >= restPos.x) and (playerPos.x <= (restPos.x + restPos.xOffset)) and
-        (playerPos.y >= restPos.y) and (playerPos.y <= (restPos.y + restPos.yOffset)) then
-            if location == "homeBed" then
-                self.actionRegen.sleep = true
-            elseif location == "homeCouch" then
-                self.state.enable = true
-                self.actionRegen.rest = true
-            elseif location == "homeShower" then
-                self.state.enable = true
-                self.actionRegen.shower = true
+    for apt, aptData in pairs(POSITIONS) do
+        if (inCircle(playerPos, aptData.x, aptData.y, aptData.r)) and
+            (playerPos.z >= aptData.z_min and playerPos.z <= aptData.z_max) then
+            print(('[LiNC Debug] Detected in Apt: %s'):format(apt))
+            for poi, poiData in ipairs(aptData.pois) do
+                if (inCircle(playerPos, poiData.x, poiData.y, poiData.r)) then
+                    print(('[LiNC Debug] Detected in POI index %d, type %s'):format(poi, poiData.type))
+                    if poiData.type == "bed" then
+                        self.actionRegen.sleep = true
+                    elseif poiData.type == "couch" then
+                        self.state.enable = true
+                        self.actionRegen.rest = true
+                    elseif poiData.type == "shower" then
+                        self.state.enable = true
+                        self.actionRegen.shower = true
+                    end
+                end
             end
         end
     end
